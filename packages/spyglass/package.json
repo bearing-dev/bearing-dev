@@ -1,0 +1,36 @@
+{
+  "name": "@sailkit/spyglass",
+  "version": "0.0.1",
+  "description": "Headless fuzzy finder for site search and sidebar filtering",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest"
+  },
+  "keywords": [
+    "fuzzy",
+    "search",
+    "finder",
+    "filter",
+    "headless",
+    "command-palette"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}
