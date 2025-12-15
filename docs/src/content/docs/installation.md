@@ -7,20 +7,47 @@ description: How to install Sailkit packages in your project.
 
 Sailkit packages are designed to be installed individually based on your needs.
 
-## Package Manager
+## From Source
 
-Install any combination of packages:
+Sailkit packages are not yet published to npm. For now, install from the GitHub repository:
 
 ```bash
-# Install individual packages
+# Clone the repository
+git clone https://github.com/joshribakoff/sailkit.git
+cd sailkit
+
+# Install dependencies
+npm install
+
+# Build all packages
+npm run build
+```
+
+Then link the packages to your project using npm workspaces or local file paths:
+
+```json
+{
+  "dependencies": {
+    "@sailkit/compass": "file:../sailkit/packages/compass",
+    "@sailkit/teleport": "file:../sailkit/packages/teleport",
+    "@sailkit/lantern": "file:../sailkit/packages/lantern",
+    "@sailkit/lighthouse": "file:../sailkit/packages/lighthouse",
+    "@sailkit/atlas": "file:../sailkit/packages/atlas"
+  }
+}
+```
+
+## Coming Soon: npm Registry
+
+Once published, you'll be able to install directly:
+
+```bash
+# Install individual packages (coming soon)
 npm install @sailkit/compass
 npm install @sailkit/teleport
 npm install @sailkit/lantern
 npm install @sailkit/lighthouse
 npm install @sailkit/atlas
-
-# Or install everything
-npm install @sailkit/compass @sailkit/teleport @sailkit/lantern @sailkit/lighthouse @sailkit/atlas
 ```
 
 ## Framework Support
