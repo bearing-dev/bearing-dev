@@ -7,134 +7,99 @@ description: Navigation state machine for nested content structures.
 
 **@sailkit/compass** is a headless navigation state machine for nested content structures. It provides DFS traversal, prev/next neighbors, and parent/child navigation without any UI assumptions.
 
-## Installation
+## Navigation Structure
 
-```bash
-npm install @sailkit/compass
-```
-
-## Core Concepts
-
-### NavItem Type
-
-Navigation is defined as a forest of `NavItem` elements:
+Navigation is defined as a tree of items. Strings are leaves, objects with `children` are branches:
 
 ```typescript
-type NavItem = string | NavBranch;
+import { isBranch, getSlug } from '@sailkit/compass'
 
-interface NavBranch {
-  slug: string;
-  children: NavItem[];
-}
+const nav = [
+  'a',
+  { slug: 'b', children: ['b1', 'b2'] },
+  { slug: 'c', children: ['c1', 'c2', 'c3'] },
+]
+
+// strings are leaves, objects with children are branches
+assert.strictEqual(isBranch(nav[0]), false)
+assert.strictEqual(isBranch(nav[1]), true)
+
+// getSlug extracts the slug from either form
+assert.strictEqual(getSlug(nav[0]), 'a')
+assert.strictEqual(getSlug(nav[1]), 'b')
 ```
 
-Strings are leaf pages, objects are sections with children.
+## Flattening to DFS Order
 
-### Example Structure
+Flatten the tree to a list of slugs in depth-first order:
 
 ```typescript
-const navigation: NavItem[] = [
-  'introduction',
-  {
-    slug: 'getting-started',
-    children: ['installation', 'quick-start'],
-  },
-  {
-    slug: 'packages',
-    children: ['compass', 'teleport', 'lantern'],
-  },
-];
+import { flattenSlugs } from '@sailkit/compass'
+
+const nav = [
+  'a',
+  { slug: 'b', children: ['b1', 'b2'] },
+  { slug: 'c', children: ['c1', 'c2', 'c3'] },
+]
+
+const all = flattenSlugs(nav)
+const leaves = flattenSlugs(nav, true)
+
+// DFS order: a, b, b1, b2, c, c1, c2, c3
+assert.strictEqual(all.length, 8)
+assert.deepStrictEqual(all, ['a', 'b', 'b1', 'b2', 'c', 'c1', 'c2', 'c3'])
+
+// leavesOnly=true excludes branches (b and c)
+assert.strictEqual(leaves.length, 6)
+assert.deepStrictEqual(leaves, ['a', 'b1', 'b2', 'c1', 'c2', 'c3'])
 ```
 
-This represents:
-- introduction
-- getting-started/
-  - installation
-  - quick-start
-- packages/
-  - compass
-  - teleport
-  - lantern
+## Getting Neighbors
 
-## Stateless Functions (SSG)
-
-Use these at build time for static generation:
-
-### `flattenSlugs()`
-
-Get all slugs in DFS order:
+Get prev/next for any slug - useful for pagination:
 
 ```typescript
-import { flattenSlugs } from '@sailkit/compass';
+import { getNeighbors } from '@sailkit/compass'
 
-const all = flattenSlugs(navigation);
-// ['introduction', 'getting-started', 'installation', 'quick-start', 'packages', 'compass', 'teleport', 'lantern']
+const nav = [
+  'a',
+  { slug: 'b', children: ['b1', 'b2'] },
+  { slug: 'c', children: ['c1', 'c2', 'c3'] },
+]
 
-const leaves = flattenSlugs(navigation, true); // leavesOnly
-// ['introduction', 'installation', 'quick-start', 'compass', 'teleport', 'lantern']
+// flattened: a, b, b1, b2, c, c1, c2, c3
+const { prev, next } = getNeighbors(nav, 'b1')
+
+// b1's neighbors in flattened order
+assert.strictEqual(prev, 'b')
+assert.strictEqual(next, 'b2')
 ```
 
-### `getNeighbors()`
+## Runtime Navigation
 
-Get prev/next for a specific slug:
-
-```typescript
-import { getNeighbors } from '@sailkit/compass';
-
-const { prev, next } = getNeighbors(navigation, 'installation');
-// prev: 'introduction', next: 'quick-start'
-
-const { prev, next } = getNeighbors(navigation, 'installation', { leavesOnly: true });
-// prev: 'introduction', next: 'quick-start' (skips section pages)
-```
-
-This is used by the [[quick-start|PrevNext component]] in this documentation.
-
-## State Machine (Runtime)
-
-For SPAs or interactive navigation:
+For SPAs, create a stateful navigator:
 
 ```typescript
-import { createNavigator } from '@sailkit/compass';
+import { createNavigator } from '@sailkit/compass'
 
-const nav = createNavigator({
-  items: navigation,
-  wrap: true,
-  leavesOnly: false,
-  onChange: (prev, next, index) => {
-    console.log(`Moved from ${prev} to ${next}`);
-  },
-});
+const nav = createNavigator({ items: ['a', 'b', 'c'], wrap: true })
 
-// Properties
-nav.current;      // Current slug
-nav.currentIndex; // Current position in flat list
-nav.count;        // Total items
+// starts at first item
+assert.strictEqual(nav.current, 'a')
+assert.strictEqual(nav.count, 3)
 
-// Navigation
-nav.next();       // Move forward
-nav.prev();       // Move backward
-nav.nextSibling(); // Skip to next sibling
-nav.prevSibling(); // Skip to previous sibling
-nav.parent();     // Go to parent section
-nav.firstChild(); // Go to first child
-nav.goTo(5);      // Jump to index
-nav.goToSlug('compass'); // Jump to slug
-nav.reset();      // Go to first item
-```
+// next() advances position
+nav.next()
+assert.strictEqual(nav.current, 'b')
 
-## Type Guards
+// wraps around when wrap=true
+nav.next()
+nav.next()
+assert.strictEqual(nav.current, 'a')
 
-```typescript
-import { isBranch, getSlug } from '@sailkit/compass';
-
-const item = navigation[1];
-
-if (isBranch(item)) {
-  console.log(item.children); // TypeScript knows it's a NavBranch
-}
-
-const slug = getSlug(item); // Works for both string and NavBranch
+// goToSlug jumps directly
+nav.goToSlug('c')
+assert.strictEqual(nav.current, 'c')
 ```
 
 ## Configuration Options
@@ -146,31 +111,7 @@ const slug = getSlug(item); // Works for both string and NavBranch
 | `leavesOnly` | `boolean` | `false` | Skip section pages |
 | `onChange` | `function` | - | Callback on navigation |
 
-## Integration with Teleport
-
-Compass provides the data structure, [[teleport]] handles keyboard events:
-
-```typescript
-import { createNavigator } from '@sailkit/compass';
-import { initTeleport } from '@sailkit/teleport';
-
-const nav = createNavigator({ items: navigation });
-
-initTeleport({
-  itemSelector: '.nav-item',
-  onNextPage: () => {
-    nav.next();
-    window.location.href = `/docs/${nav.current}/`;
-  },
-  onPrevPage: () => {
-    nav.prev();
-    window.location.href = `/docs/${nav.current}/`;
-  },
-});
-```
-
 ## Related
 
 - [[teleport]] - Keyboard navigation that works with Compass
 - [[architecture]] - How Compass fits into the larger system
-- [[vim-navigation]] - Guide for customizing keyboard navigation
