@@ -327,3 +327,110 @@ test.describe('No sidebarSelector (backwards compatibility)', () => {
     await expect(page.locator('.nav-item').nth(2)).toHaveClass(/teleport-highlight/);
   });
 });
+
+test.describe('Desktop breakpoint mode', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?breakpoint=desktop');
+  });
+
+  test('j/k navigate sidebar when visible', async ({ page }) => {
+    // Position 0 → 1, highlight at 1
+    await page.keyboard.press('j');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
+
+    // Position 1 → 2, highlight at 2
+    await page.keyboard.press('j');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(2);
+
+    // k moves back
+    await page.keyboard.press('k');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
+  });
+
+  test('ArrowDown does NOT navigate sidebar (passes through)', async ({ page }) => {
+    // First navigate with j to set initial position
+    await page.keyboard.press('j');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
+
+    // ArrowDown should NOT change the highlight (passes through for native scroll)
+    const before = await page.evaluate(() => window.getHighlightedIndex());
+    await page.keyboard.press('ArrowDown');
+    const after = await page.evaluate(() => window.getHighlightedIndex());
+
+    expect(after).toBe(before);
+  });
+
+  test('ArrowUp does NOT navigate sidebar (passes through)', async ({ page }) => {
+    // Navigate to position 2 with j
+    await page.keyboard.press('j');
+    await page.keyboard.press('j');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(2);
+
+    // ArrowUp should NOT change the highlight (passes through for native scroll)
+    const before = await page.evaluate(() => window.getHighlightedIndex());
+    await page.keyboard.press('ArrowUp');
+    const after = await page.evaluate(() => window.getHighlightedIndex());
+
+    expect(after).toBe(before);
+  });
+
+  test('arrows pass through even when sidebar is visible', async ({ page }) => {
+    // Make main area scrollable
+    await page.evaluate(() => {
+      const main = document.querySelector('main');
+      if (main) {
+        main.style.height = '200px';
+        main.style.overflow = 'auto';
+        main.innerHTML += '<div style="height: 1000px;">Scrollable content</div>';
+      }
+    });
+
+    // Navigate to an item first
+    await page.keyboard.press('j');
+    const highlightBefore = await page.evaluate(() => window.getHighlightedIndex());
+
+    // Press ArrowDown - should NOT change highlight
+    await page.keyboard.press('ArrowDown');
+    const highlightAfter = await page.evaluate(() => window.getHighlightedIndex());
+
+    expect(highlightAfter).toBe(highlightBefore);
+  });
+});
+
+test.describe('Mobile breakpoint mode (default)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?breakpoint=mobile');
+  });
+
+  test('ArrowDown navigates sidebar when visible', async ({ page }) => {
+    // ArrowDown should navigate sidebar
+    await page.keyboard.press('ArrowDown');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
+
+    await page.keyboard.press('ArrowDown');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(2);
+  });
+
+  test('ArrowUp navigates sidebar when visible', async ({ page }) => {
+    // Navigate down first
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(2);
+
+    // ArrowUp should navigate back
+    await page.keyboard.press('ArrowUp');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
+  });
+
+  test('arrows pass through when sidebar is hidden (whenHidden: ignore)', async ({ page }) => {
+    await page.evaluate(() => window.hideSidebar('transform'));
+    await page.waitForTimeout(350);
+
+    // Arrows should NOT navigate when hidden
+    const before = await page.evaluate(() => window.getHighlightedIndex());
+    await page.keyboard.press('ArrowDown');
+    const after = await page.evaluate(() => window.getHighlightedIndex());
+
+    expect(after).toBe(before);
+  });
+});

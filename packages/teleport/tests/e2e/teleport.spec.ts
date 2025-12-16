@@ -9,68 +9,75 @@ test('page loads successfully', async ({ page }) => {
   await expect(page.locator('.nav-item')).toHaveCount(5);
 });
 
-test.describe('Go to top/bottom navigation', () => {
-  test('gg goes to first item', async ({ page }) => {
-    await page.goto('/packages/teleport/tests/fixtures/index.html');
+test.describe('Go to top/bottom page scroll', () => {
+  test('gg scrolls to top of page', async ({ page }) => {
+    await page.goto('/packages/teleport/tests/fixtures/scroll-fixture.html');
 
-    // Navigate to middle of list first
-    await page.keyboard.press('j');
-    await page.keyboard.press('j');
-    await page.keyboard.press('j');
-    await expect(page.locator('.nav-item').nth(3)).toHaveClass(/teleport-highlight/);
+    // Scroll down first
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
     // Press gg (two g's in quick succession)
     await page.keyboard.press('g');
     await page.keyboard.press('g');
 
-    // Should be at first item
-    await expect(page.locator('.nav-item').nth(0)).toHaveClass(/teleport-highlight/);
+    // Wait for smooth scroll
+    await page.waitForTimeout(500);
+
+    // Should be at top
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
   });
 
-  test('G (Shift+g) goes to last item', async ({ page }) => {
-    await page.goto('/packages/teleport/tests/fixtures/index.html');
+  test('G (Shift+g) scrolls to bottom of page', async ({ page }) => {
+    await page.goto('/packages/teleport/tests/fixtures/scroll-fixture.html');
 
-    // Start at first item
-    await page.keyboard.press('j');
-    await expect(page.locator('.nav-item').nth(1)).toHaveClass(/teleport-highlight/);
+    // Start at top
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
     // Press G (Shift+g)
     await page.keyboard.press('Shift+g');
 
-    // Should be at last item (5 items, index 4)
-    await expect(page.locator('.nav-item').nth(4)).toHaveClass(/teleport-highlight/);
+    // Wait for smooth scroll to complete
+    await page.waitForTimeout(1000);
+
+    // Should have scrolled significantly (at least halfway down)
+    const scrollY = await page.evaluate(() => window.scrollY);
+    const maxScroll = await page.evaluate(() => document.body.scrollHeight - window.innerHeight);
+    expect(scrollY).toBeGreaterThan(maxScroll * 0.5);
   });
 
-  test('single g does not trigger goToTop', async ({ page }) => {
-    await page.goto('/packages/teleport/tests/fixtures/index.html');
+  test('single g does not trigger scroll', async ({ page }) => {
+    await page.goto('/packages/teleport/tests/fixtures/scroll-fixture.html');
 
-    // Navigate to middle
-    await page.keyboard.press('j');
-    await page.keyboard.press('j');
-    await expect(page.locator('.nav-item').nth(2)).toHaveClass(/teleport-highlight/);
+    // Scroll to middle
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(100);
+    const initialScroll = await page.evaluate(() => window.scrollY);
 
     // Press single g
     await page.keyboard.press('g');
+    await page.waitForTimeout(100);
 
     // Should still be at same position
-    await expect(page.locator('.nav-item').nth(2)).toHaveClass(/teleport-highlight/);
+    expect(await page.evaluate(() => window.scrollY)).toBe(initialScroll);
   });
 
   test('g sequence times out after 500ms', async ({ page }) => {
-    await page.goto('/packages/teleport/tests/fixtures/index.html');
+    await page.goto('/packages/teleport/tests/fixtures/scroll-fixture.html');
 
-    // Navigate to middle
-    await page.keyboard.press('j');
-    await page.keyboard.press('j');
-    await page.keyboard.press('j');
-    await expect(page.locator('.nav-item').nth(3)).toHaveClass(/teleport-highlight/);
+    // Scroll to middle
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(100);
+    const initialScroll = await page.evaluate(() => window.scrollY);
 
     // Press g, wait too long, then press g again
     await page.keyboard.press('g');
     await page.waitForTimeout(600); // Wait longer than 500ms timeout
     await page.keyboard.press('g');
+    await page.waitForTimeout(100);
 
-    // Should still be at same position (sequence timed out)
-    await expect(page.locator('.nav-item').nth(3)).toHaveClass(/teleport-highlight/);
+    // Should still be at same position (sequence timed out, second g starts new sequence)
+    expect(await page.evaluate(() => window.scrollY)).toBe(initialScroll);
   });
 });

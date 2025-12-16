@@ -116,17 +116,20 @@
     // Get config from URL params (for test flexibility)
     const params = new URLSearchParams(window.location.search);
     const whenHidden = params.get('whenHidden') || 'ignore';
+    const breakpoint = params.get('breakpoint') || 'mobile';
 
     const teleport = createTeleport({
       itemSelector: '.nav-item',
       sidebarSelector: '.sidebar',
       highlightClass: 'teleport-highlight',
       whenHidden: whenHidden,
+      breakpoint: breakpoint,
     });
 
     // Expose for testing
     window.teleport = teleport;
     window.whenHidden = whenHidden;
+    window.breakpoint = breakpoint;
 
     // Track toggle events
     window.toggleCount = 0;

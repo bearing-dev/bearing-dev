@@ -16,6 +16,13 @@ import { scrollElement, getViewportHeight } from './dom.js';
 export type WhenHiddenBehavior = 'ignore' | 'show-sidebar';
 
 /**
+ * Breakpoint mode affecting keyboard behavior
+ * - 'mobile': arrows and j/k both navigate sidebar when visible (default)
+ * - 'desktop': arrows always pass through for native scroll, j/k navigate sidebar
+ */
+export type BreakpointMode = 'mobile' | 'desktop';
+
+/**
  * Configuration for createTeleport
  */
 export interface CreateTeleportConfig {
@@ -35,6 +42,8 @@ export interface CreateTeleportConfig {
   ignoreWhenTyping?: boolean;
   /** What to do when navigation keys pressed while sidebar hidden (default: 'ignore' - arrows scroll natively, j/k/Enter do nothing) */
   whenHidden?: WhenHiddenBehavior;
+  /** Breakpoint mode: 'mobile' = arrows+j/k both navigate, 'desktop' = arrows always pass through for scroll (default: 'mobile') */
+  breakpoint?: BreakpointMode;
   /** Callback when item is selected (Enter pressed) */
   onSelect?: (element: HTMLElement, slug: string) => void;
   /** Callback when sidebar toggle is triggered */
@@ -92,6 +101,7 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
     bindings = {},
     ignoreWhenTyping = true,
     whenHidden = 'ignore',
+    breakpoint = 'mobile',
     onSelect,
     onToggleSidebar,
     onOpenFinder,
@@ -146,10 +156,15 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
   }
 
   /**
-   * Handle navigation action with sidebar visibility awareness.
+   * Handle navigation action with sidebar visibility and breakpoint awareness.
    * Returns false if the event should pass through (not preventDefault).
    */
   function handleNavigationAction(event: KeyboardEvent, action: () => void): boolean {
+    // Desktop mode: arrows always pass through for native scroll
+    if (breakpoint === 'desktop' && isArrowKey(event)) {
+      return false; // don't preventDefault, let native scroll happen
+    }
+
     if (isSidebarVisible()) {
       action();
       return true; // handled, preventDefault
@@ -188,6 +203,9 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
     });
   }
 
+  // Track if this is the initial load (don't animate scroll on page load)
+  let isInitialLoad = true;
+
   /**
    * Update DOM to reflect current position
    */
@@ -199,7 +217,8 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
     if (index >= 0 && index < elements.length) {
       const el = elements[index];
       el.classList.add(highlightClass);
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Use instant scroll on initial load, smooth scroll for user navigation
+      el.scrollIntoView({ behavior: isInitialLoad ? 'instant' : 'smooth', block: 'nearest' });
     }
   }
 
@@ -219,6 +238,7 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
   // Initial scan
   scanDOM();
   syncWithUrl();
+  isInitialLoad = false;
 
   // Set up keyboard handler
   const mergedBindings: KeyBindings = {
@@ -285,14 +305,12 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
     onOpenFinder: onOpenFinder
       ? () => onOpenFinder()
       : () => document.dispatchEvent(new CustomEvent('teleport:open-finder')),
-    onGoToTop: (event) => handleNavigationAction(event, () => {
-      navigator?.goTo(0);
-    }),
-    onGoToBottom: (event) => handleNavigationAction(event, () => {
-      if (navigator && elements.length > 0) {
-        navigator.goTo(elements.length - 1);
-      }
-    }),
+    onGoToTop: () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    onGoToBottom: () => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    },
   });
 
   // Attach global keydown listener

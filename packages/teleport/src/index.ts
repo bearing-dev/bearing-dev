@@ -58,4 +58,5 @@ export {
   type CreateTeleportConfig,
   type TeleportInstance,
   type WhenHiddenBehavior,
+  type BreakpointMode,
 } from './navigator.js';
