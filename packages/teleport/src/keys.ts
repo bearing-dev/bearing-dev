@@ -13,36 +13,141 @@ import type {
 } from './types.js';
 
 /**
- * Default key bindings
+ * Default key bindings - vim-style hjkl
  */
 export const DEFAULT_BINDINGS: Required<KeyBindings> = {
-  nextItem: ['j', 'ArrowDown'],
-  prevItem: ['k', 'ArrowUp'],
+  down: ['j', 'ArrowDown'],
+  up: ['k', 'ArrowUp'],
+  left: ['h', 'ArrowLeft'],
+  right: ['l', 'ArrowRight'],
   scrollDown: ['Ctrl+d'],
   scrollUp: ['Ctrl+u'],
-  nextPage: ['l', 'ArrowRight'],
-  prevPage: ['h', 'ArrowLeft'],
   select: ['Enter'],
   openFinder: ['t'],
   escape: ['Escape'],
 };
 
 /**
+ * Valid modifier names (case-insensitive)
+ */
+const VALID_MODIFIERS = new Set(['ctrl', 'alt', 'shift', 'meta', 'cmd']);
+
+/**
+ * Valid multi-character key names that are not modifiers
+ */
+const VALID_SPECIAL_KEYS = new Set([
+  'arrowdown',
+  'arrowup',
+  'arrowleft',
+  'arrowright',
+  'enter',
+  'escape',
+  'tab',
+  'backspace',
+  'delete',
+  'home',
+  'end',
+  'pageup',
+  'pagedown',
+  'space',
+  'insert',
+  'capslock',
+  'numlock',
+  'scrolllock',
+  'pause',
+  'printscreen',
+  'contextmenu',
+  // Function keys F1-F24
+  'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12',
+  'f13', 'f14', 'f15', 'f16', 'f17', 'f18', 'f19', 'f20', 'f21', 'f22', 'f23', 'f24',
+]);
+
+/**
  * Parse a key pattern string into components.
  *
  * Supports modifiers: Ctrl, Alt, Shift, Meta (Cmd on Mac)
  * Examples: 'j', 'Ctrl+d', 'Shift+Tab', 'Meta+k'
+ *
+ * @throws Error if the pattern is invalid
  */
 export function parseKey(pattern: string): ParsedKey {
+  // Check for empty or whitespace-only
+  if (!pattern || pattern.trim() === '') {
+    throw new Error('Invalid key binding: empty string');
+  }
+
+  // Check for whitespace
+  if (/\s/.test(pattern)) {
+    throw new Error(`Invalid key binding "${pattern}": contains whitespace`);
+  }
+
+  // Check for plus-only
+  if (pattern === '+') {
+    throw new Error(`Invalid key binding "+": plus sign only`);
+  }
+
+  // Check for leading plus
+  if (pattern.startsWith('+')) {
+    throw new Error(`Invalid key binding "${pattern}": leading plus sign`);
+  }
+
+  // Check for consecutive plus signs
+  if (/\+\+/.test(pattern)) {
+    throw new Error(`Invalid key binding "${pattern}": consecutive plus signs`);
+  }
+
+  // Check for trailing plus (empty key after modifier)
+  if (pattern.endsWith('+')) {
+    throw new Error(`Invalid key binding "${pattern}": empty key after modifier`);
+  }
+
   const parts = pattern.split('+');
   const key = parts.pop()!.toLowerCase();
+  const modifierParts = parts;
+
+  // Track seen modifiers to detect duplicates
+  const seenModifiers = new Set<string>();
+
+  // Validate each modifier
+  for (const part of modifierParts) {
+    const lowerPart = part.toLowerCase();
+
+    if (!VALID_MODIFIERS.has(lowerPart)) {
+      throw new Error(
+        `Invalid key binding "${pattern}": unrecognized modifier "${part}"`
+      );
+    }
+
+    // Normalize cmd to meta for duplicate detection
+    const normalizedMod = lowerPart === 'cmd' ? 'meta' : lowerPart;
+    if (seenModifiers.has(normalizedMod)) {
+      throw new Error(
+        `Invalid key binding "${pattern}": duplicate modifier "${part}"`
+      );
+    }
+    seenModifiers.add(normalizedMod);
+  }
+
+  // If the key is itself a modifier, it's a modifier-only binding (missing key)
+  if (VALID_MODIFIERS.has(key)) {
+    throw new Error(
+      `Invalid key binding "${pattern}": modifier-only binding, missing key`
+    );
+  }
+
+  // Check for suspicious multi-character keys (likely missing +)
+  if (key.length > 1 && !VALID_SPECIAL_KEYS.has(key)) {
+    throw new Error(
+      `Invalid key binding "${pattern}": key "${key}" looks like a missing plus sign`
+    );
+  }
 
   return {
     key,
-    ctrl: parts.some((p) => p.toLowerCase() === 'ctrl'),
-    alt: parts.some((p) => p.toLowerCase() === 'alt'),
-    shift: parts.some((p) => p.toLowerCase() === 'shift'),
-    meta: parts.some((p) => p.toLowerCase() === 'meta' || p.toLowerCase() === 'cmd'),
+    ctrl: seenModifiers.has('ctrl'),
+    alt: seenModifiers.has('alt'),
+    shift: seenModifiers.has('shift'),
+    meta: seenModifiers.has('meta'),
   };
 }
 
@@ -94,19 +199,19 @@ export function isTypingContext(event: KeyboardEvent): boolean {
 }
 
 /**
- * Create a keyboard handler that maps key events to callbacks.
+ * Create a keyboard handler that maps key events to directional callbacks.
  */
 export function createKeyboardHandler(
   config: KeyboardHandlerConfig
 ): KeyboardHandler {
   const {
     bindings = {},
-    onNextItem,
-    onPrevItem,
+    onDown,
+    onUp,
+    onLeft,
+    onRight,
     onScrollDown,
     onScrollUp,
-    onNextPage,
-    onPrevPage,
     onSelect,
     onOpenFinder,
     onEscape,
@@ -124,19 +229,32 @@ export function createKeyboardHandler(
       return false;
     }
 
-    // Check each binding
-    if (onNextItem && matchesAnyKey(event, mergedBindings.nextItem)) {
+    // Directional bindings
+    if (onDown && matchesAnyKey(event, mergedBindings.down)) {
       event.preventDefault();
-      onNextItem();
+      onDown();
       return true;
     }
 
-    if (onPrevItem && matchesAnyKey(event, mergedBindings.prevItem)) {
+    if (onUp && matchesAnyKey(event, mergedBindings.up)) {
       event.preventDefault();
-      onPrevItem();
+      onUp();
       return true;
     }
 
+    if (onLeft && matchesAnyKey(event, mergedBindings.left)) {
+      event.preventDefault();
+      onLeft();
+      return true;
+    }
+
+    if (onRight && matchesAnyKey(event, mergedBindings.right)) {
+      event.preventDefault();
+      onRight();
+      return true;
+    }
+
+    // Scroll bindings
     if (onScrollDown && matchesAnyKey(event, mergedBindings.scrollDown)) {
       event.preventDefault();
       onScrollDown();
@@ -149,18 +267,7 @@ export function createKeyboardHandler(
       return true;
     }
 
-    if (onNextPage && matchesAnyKey(event, mergedBindings.nextPage)) {
-      event.preventDefault();
-      onNextPage();
-      return true;
-    }
-
-    if (onPrevPage && matchesAnyKey(event, mergedBindings.prevPage)) {
-      event.preventDefault();
-      onPrevPage();
-      return true;
-    }
-
+    // Action bindings
     if (onSelect && matchesAnyKey(event, mergedBindings.select)) {
       event.preventDefault();
       onSelect();
