@@ -1,6 +1,6 @@
 {
-  "name": "@sailkit/teleport",
-  "version": "0.1.0",
+  "name": "@bearing-dev/teleport",
+  "version": "0.0.1",
   "description": "Vim-style keyboard navigation bindings with DOM integration",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,19 +21,23 @@
     "prepare": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@sailkit/compass": ">=0.1.0"
+    "@bearing-dev/compass": ">=0.0.1"
   },
   "peerDependenciesMeta": {
-    "@sailkit/compass": {
+    "@bearing-dev/compass": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@sailkit/compass": "file:../compass",
+    "@playwright/test": "^1.57.0",
+    "@bearing-dev/compass": "file:../compass",
     "jsdom": "^25.0.0",
+    "serve": "^14.2.5",
     "typescript": "^5.3.0",
     "vitest": "^2.0.0"
   },

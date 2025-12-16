@@ -13,15 +13,15 @@ import type {
 } from './types.js';
 
 /**
- * Default key bindings
+ * Default key bindings - vim-style hjkl
  */
 export const DEFAULT_BINDINGS: Required<KeyBindings> = {
-  nextItem: ['j', 'ArrowDown'],
-  prevItem: ['k', 'ArrowUp'],
+  down: ['j', 'ArrowDown'],
+  up: ['k', 'ArrowUp'],
+  left: ['h', 'ArrowLeft'],
+  right: ['l', 'ArrowRight'],
   scrollDown: ['Ctrl+d'],
   scrollUp: ['Ctrl+u'],
-  nextPage: ['l', 'ArrowRight'],
-  prevPage: ['h', 'ArrowLeft'],
   select: ['Enter'],
   openFinder: ['t'],
   escape: ['Escape'],
@@ -199,19 +199,19 @@ export function isTypingContext(event: KeyboardEvent): boolean {
 }
 
 /**
- * Create a keyboard handler that maps key events to callbacks.
+ * Create a keyboard handler that maps key events to directional callbacks.
  */
 export function createKeyboardHandler(
   config: KeyboardHandlerConfig
 ): KeyboardHandler {
   const {
     bindings = {},
-    onNextItem,
-    onPrevItem,
+    onDown,
+    onUp,
+    onLeft,
+    onRight,
     onScrollDown,
     onScrollUp,
-    onNextPage,
-    onPrevPage,
     onSelect,
     onOpenFinder,
     onEscape,
@@ -229,19 +229,32 @@ export function createKeyboardHandler(
       return false;
     }
 
-    // Check each binding
-    if (onNextItem && matchesAnyKey(event, mergedBindings.nextItem)) {
+    // Directional bindings
+    if (onDown && matchesAnyKey(event, mergedBindings.down)) {
       event.preventDefault();
-      onNextItem();
+      onDown();
       return true;
     }
 
-    if (onPrevItem && matchesAnyKey(event, mergedBindings.prevItem)) {
+    if (onUp && matchesAnyKey(event, mergedBindings.up)) {
       event.preventDefault();
-      onPrevItem();
+      onUp();
       return true;
     }
 
+    if (onLeft && matchesAnyKey(event, mergedBindings.left)) {
+      event.preventDefault();
+      onLeft();
+      return true;
+    }
+
+    if (onRight && matchesAnyKey(event, mergedBindings.right)) {
+      event.preventDefault();
+      onRight();
+      return true;
+    }
+
+    // Scroll bindings
     if (onScrollDown && matchesAnyKey(event, mergedBindings.scrollDown)) {
       event.preventDefault();
       onScrollDown();
@@ -254,18 +267,7 @@ export function createKeyboardHandler(
       return true;
     }
 
-    if (onNextPage && matchesAnyKey(event, mergedBindings.nextPage)) {
-      event.preventDefault();
-      onNextPage();
-      return true;
-    }
-
-    if (onPrevPage && matchesAnyKey(event, mergedBindings.prevPage)) {
-      event.preventDefault();
-      onPrevPage();
-      return true;
-    }
-
+    // Action bindings
     if (onSelect && matchesAnyKey(event, mergedBindings.select)) {
       event.preventDefault();
       onSelect();

@@ -1,4 +1,4 @@
-# @sailkit/teleport
+# @bearing-dev/teleport
 
 Vim-style keyboard navigation bindings with DOM integration.
 
@@ -6,7 +6,7 @@ Vim-style keyboard navigation bindings with DOM integration.
 
 ```astro
 ---
-import Teleport from '@sailkit/teleport/Teleport.astro';
+import Teleport from '@bearing-dev/teleport/Teleport.astro';
 ---
 <html>
   <body>
@@ -52,7 +52,7 @@ Three layers of abstraction for custom integrations:
 
 ```typescript
 // Layer 3: Full integration (batteries included)
-import { initTeleport } from '@sailkit/teleport';
+import { initTeleport } from '@bearing-dev/teleport';
 
 const teleport = initTeleport({
   itemSelector: '.nav-item',
@@ -65,7 +65,7 @@ const teleport = initTeleport({
 teleport.destroy();
 
 // Layer 2: DOM adapter only
-import { createDOMNavigator } from '@sailkit/teleport';
+import { createDOMNavigator } from '@bearing-dev/teleport';
 
 const navigator = createDOMNavigator({
   getItems: () => document.querySelectorAll('.item'),
@@ -78,7 +78,7 @@ navigator.prev();
 navigator.goTo(5);
 
 // Layer 1: Pure key bindings
-import { createKeyboardHandler, DEFAULT_BINDINGS } from '@sailkit/teleport';
+import { createKeyboardHandler, DEFAULT_BINDINGS } from '@bearing-dev/teleport';
 
 const handler = createKeyboardHandler({
   bindings: { ...DEFAULT_BINDINGS, nextItem: ['n'] },
@@ -92,7 +92,7 @@ document.addEventListener('keydown', handler.handleKeydown);
 ## Custom Bindings
 
 ```typescript
-import { initTeleport } from '@sailkit/teleport';
+import { initTeleport } from '@bearing-dev/teleport';
 
 initTeleport({
   itemSelector: '.nav-item',
@@ -123,6 +123,6 @@ Listen for the `teleport:open-finder` event:
 ```javascript
 document.addEventListener('teleport:open-finder', () => {
   // Open your fuzzy finder UI
-  // Use @sailkit/compass data structure for items
+  // Use @bearing-dev/compass data structure for items
 });
 ```
