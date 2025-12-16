@@ -1,10 +1,11 @@
 {
-  "name": "sailkit",
-  "version": "0.1.0",
+  "name": "bearing-dev",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "docs"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
