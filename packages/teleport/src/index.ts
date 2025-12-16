@@ -53,4 +53,9 @@ export { scrollElement, getViewportHeight } from './dom.js';
 export { initTeleport, injectTeleportStyles } from './teleport.js';
 
 // DOM Navigator (batteries-included)
-export { createTeleport, type CreateTeleportConfig, type TeleportInstance } from './navigator.js';
+export {
+  createTeleport,
+  type CreateTeleportConfig,
+  type TeleportInstance,
+  type WhenHiddenBehavior,
+} from './navigator.js';

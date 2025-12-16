@@ -11,11 +11,18 @@ import type { KeyBindings } from './types.js';
 import { scrollElement, getViewportHeight } from './dom.js';
 
 /**
+ * Behavior when sidebar is hidden and navigation keys are pressed
+ */
+export type WhenHiddenBehavior = 'ignore' | 'show-sidebar';
+
+/**
  * Configuration for createTeleport
  */
 export interface CreateTeleportConfig {
   /** CSS selector for navigable items (required) */
   itemSelector: string;
+  /** CSS selector for sidebar container (optional, enables visibility-aware navigation) */
+  sidebarSelector?: string;
   /** Class to add to highlighted item (default: 'teleport-highlight') */
   highlightClass?: string;
   /** Attribute to use for item identifier (default: 'href', falls back to index) */
@@ -26,6 +33,8 @@ export interface CreateTeleportConfig {
   bindings?: KeyBindings;
   /** Ignore keystrokes when typing (default: true) */
   ignoreWhenTyping?: boolean;
+  /** What to do when j/k/Enter pressed while sidebar hidden (default: 'ignore') */
+  whenHidden?: WhenHiddenBehavior;
   /** Callback when item is selected (Enter pressed) */
   onSelect?: (element: HTMLElement, slug: string) => void;
   /** Callback when sidebar toggle is triggered */
@@ -76,11 +85,13 @@ export interface TeleportInstance {
 export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
   const {
     itemSelector,
+    sidebarSelector,
     highlightClass = 'teleport-highlight',
     idAttribute = 'href',
     wrap = true,
     bindings = {},
     ignoreWhenTyping = true,
+    whenHidden = 'ignore',
     onSelect,
     onToggleSidebar,
     onOpenFinder,
@@ -92,6 +103,46 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
   let elements: HTMLElement[] = [];
   let slugs: string[] = [];
   let navigator: Navigator | null = null;
+
+  /**
+   * Check if sidebar is visible (if sidebarSelector is configured)
+   */
+  function isSidebarVisible(): boolean {
+    if (!sidebarSelector) return true; // No selector = always "visible"
+    const sidebar = document.querySelector<HTMLElement>(sidebarSelector);
+    if (!sidebar) return true; // No sidebar element = always "visible"
+
+    // Check common visibility patterns
+    const style = getComputedStyle(sidebar);
+    if (style.display === 'none') return false;
+    if (style.visibility === 'hidden') return false;
+    if (style.opacity === '0') return false;
+
+    // Check for common "hidden" class patterns
+    if (sidebar.classList.contains('hidden')) return false;
+    if (sidebar.classList.contains('collapsed')) return false;
+    if (sidebar.hasAttribute('hidden')) return false;
+
+    // Check transform (often used for off-screen sidebars)
+    if (style.transform.includes('translateX(-')) return false;
+
+    return true;
+  }
+
+  /**
+   * Handle navigation action with sidebar visibility awareness
+   */
+  function handleNavigationAction(action: () => void): void {
+    if (isSidebarVisible()) {
+      action();
+    } else if (whenHidden === 'show-sidebar') {
+      // Show sidebar first, then navigate
+      document.dispatchEvent(new CustomEvent('teleport:toggle-sidebar'));
+      // Small delay to let sidebar animate open
+      setTimeout(action, 50);
+    }
+    // 'ignore' behavior: do nothing
+  }
 
   /**
    * Scan DOM and build navigation state
@@ -153,11 +204,11 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
   const keyHandler = createKeyboardHandler({
     bindings: mergedBindings,
     ignoreWhenTyping,
-    onDown: () => navigator?.next(),
-    onUp: () => navigator?.prev(),
+    onDown: () => handleNavigationAction(() => navigator?.next()),
+    onUp: () => handleNavigationAction(() => navigator?.prev()),
     onScrollDown: () => scrollElement(window, getViewportHeight() / 2, 'down'),
     onScrollUp: () => scrollElement(window, getViewportHeight() / 2, 'up'),
-    onSelect: () => {
+    onSelect: () => handleNavigationAction(() => {
       if (!navigator || navigator.currentIndex < 0) return;
       const el = elements[navigator.currentIndex];
       const slug = slugs[navigator.currentIndex];
@@ -168,7 +219,7 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
         const href = el.getAttribute('href');
         if (href) window.location.href = href;
       }
-    },
+    }),
     onLeft: () => {
       if (onLeft) {
         onLeft();
