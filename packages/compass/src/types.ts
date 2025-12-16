@@ -89,9 +89,6 @@ export interface NavigatorConfig {
   /** Only stop on leaf nodes - skip branches (default: false) */
   leavesOnly?: boolean;
 
-  /** Initial index (-1 for no selection, default: 0) */
-  initialIndex?: number;
-
   /** Callback on navigation */
   onChange?: (
     prevSlug: string | null,

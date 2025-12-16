@@ -9,8 +9,8 @@ Vim-style keyboard navigation for any website.
 Key binding libraries like Mousetrap are great for simple hotkeys, but they don't understand context. Teleport handles the nuances of sidebar-based navigation that you'd otherwise have to build yourself:
 
 - **Visibility awareness**: Should `j`/`k` work when the sidebar is hidden? Teleport can ignore navigation or auto-open the sidebar.
-- **State management**: Track which item is highlighted, sync with URL, handle wrapping at boundaries.
-- **DOM integration**: Highlight classes, scroll into view, input field detection.
+- **State management**: Track current position, sync with URL, handle wrapping at boundaries.
+- **DOM integration**: Adds a customizable class to current item, scrolls into view, ignores input fields.
 - **Hierarchical navigation**: Uses [Compass](../compass) internally for tree traversal.
 
 ```javascript
@@ -27,9 +27,7 @@ Mousetrap.bind('j', () => {
   if (!isSidebarVisible()) {
     // open sidebar? ignore? you decide...
   }
-  // update highlight state
-  // add class to new element
-  // remove class from old element
+  // move class to new element
   // scroll into view
   // sync with URL...
 });
@@ -42,6 +40,8 @@ Mousetrap.bind('j', () => {
 **Internally uses Compass.** Teleport scans the DOM and builds a navigation tree using [@bearing-dev/compass](../compass). You get hierarchical navigation for free.
 
 **Framework-agnostic.** The core is pure JavaScript. The Astro component is a convenience wrapper.
+
+**Simple highlight model.** Teleport adds a CSS class to the current item. That's it. You control the styling - whether it's visible, how it looks, when to hide it. The library doesn't manage "highlight visibility" state.
 
 ## Architecture
 
@@ -61,8 +61,7 @@ STATE UPDATE
 
 DOM UPDATE
 └─► updateHighlight (navigator.ts)
-    └─► Removes highlight class from all items
-    └─► Adds highlight class to current item
+    └─► Moves highlight class to current item
     └─► Scrolls item into view
 ```
 
@@ -115,7 +114,6 @@ import Teleport from '@bearing-dev/teleport/Teleport.astro';
 | `Enter` | Navigate to highlighted item |
 | `t` | Toggle sidebar |
 | `/` | Open fuzzy finder (when enabled) |
-| `Escape` | Clear highlight |
 
 ## Sidebar Visibility
 
@@ -219,13 +217,20 @@ createTeleport({
 
 ## Styling
 
-Default highlight styles are injected. Override with CSS:
+Teleport adds the highlight class to the current item. You provide the styles:
 
 ```css
+/* Basic highlight */
 .teleport-highlight {
   outline: 2px solid var(--color-accent);
   background-color: var(--color-accent-dim);
 }
+
+/* Or use a custom class name */
+createTeleport({
+  itemSelector: '.nav-item',
+  highlightClass: 'my-custom-highlight', // default: 'teleport-highlight'
+});
 ```
 
 ## Events

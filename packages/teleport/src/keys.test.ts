@@ -396,6 +396,5 @@ describe('DEFAULT_BINDINGS', () => {
     expect(DEFAULT_BINDINGS.select).toContain('Enter');
     expect(DEFAULT_BINDINGS.toggleSidebar).toContain('t');
     expect(DEFAULT_BINDINGS.openFinder).toContain('/');
-    expect(DEFAULT_BINDINGS.escape).toContain('Escape');
   });
 });

@@ -12,17 +12,14 @@ test.describe('Sidebar visibility detection', () => {
   test('detects sidebar hidden via display:none', async ({ page }) => {
     await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?whenHidden=ignore');
 
-    // Verify sidebar is initially visible and j works
+    // Verify sidebar is initially visible and j works (position 0 → 1)
     await page.keyboard.press('j');
-    await expect(page.locator('.nav-item').first()).toHaveClass(/teleport-highlight/);
+    await expect(page.locator('.nav-item').nth(1)).toHaveClass(/teleport-highlight/);
 
     // Hide sidebar via display:none
     await page.evaluate(() => window.hideSidebar('display'));
 
-    // Clear highlight first
-    await page.keyboard.press('Escape');
-
-    // Press j - should be ignored
+    // Press j - should be ignored (highlight stays at 1)
     const initialIndex = await page.evaluate(() => window.getHighlightedIndex());
     await page.keyboard.press('j');
     const afterIndex = await page.evaluate(() => window.getHighlightedIndex());
@@ -34,8 +31,8 @@ test.describe('Sidebar visibility detection', () => {
     await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?whenHidden=ignore');
 
     await page.evaluate(() => window.hideSidebar('visibility'));
-    await page.keyboard.press('Escape'); // Clear any highlight
 
+    // No highlight yet (haven't pressed j), so initialIndex is -1
     const initialIndex = await page.evaluate(() => window.getHighlightedIndex());
     await page.keyboard.press('j');
     const afterIndex = await page.evaluate(() => window.getHighlightedIndex());
@@ -47,7 +44,6 @@ test.describe('Sidebar visibility detection', () => {
     await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?whenHidden=ignore');
 
     await page.evaluate(() => window.hideSidebar('opacity'));
-    await page.keyboard.press('Escape');
 
     const initialIndex = await page.evaluate(() => window.getHighlightedIndex());
     await page.keyboard.press('j');
@@ -61,7 +57,6 @@ test.describe('Sidebar visibility detection', () => {
 
     await page.evaluate(() => window.hideSidebar('transform'));
     await page.waitForTimeout(350); // Wait for CSS transition
-    await page.keyboard.press('Escape');
 
     const initialIndex = await page.evaluate(() => window.getHighlightedIndex());
     await page.keyboard.press('j');
@@ -74,7 +69,6 @@ test.describe('Sidebar visibility detection', () => {
     await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?whenHidden=ignore');
 
     await page.evaluate(() => window.hideSidebar('hidden-class'));
-    await page.keyboard.press('Escape');
 
     const initialIndex = await page.evaluate(() => window.getHighlightedIndex());
     await page.keyboard.press('j');
@@ -87,7 +81,6 @@ test.describe('Sidebar visibility detection', () => {
     await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?whenHidden=ignore');
 
     await page.evaluate(() => window.hideSidebar('collapsed-class'));
-    await page.keyboard.press('Escape');
 
     const initialIndex = await page.evaluate(() => window.getHighlightedIndex());
     await page.keyboard.press('j');
@@ -100,7 +93,6 @@ test.describe('Sidebar visibility detection', () => {
     await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?whenHidden=ignore');
 
     await page.evaluate(() => window.hideSidebar('hidden-attr'));
-    await page.keyboard.press('Escape');
 
     const initialIndex = await page.evaluate(() => window.getHighlightedIndex());
     await page.keyboard.press('j');
@@ -116,24 +108,24 @@ test.describe('whenHidden: ignore', () => {
   });
 
   test('j/k work when sidebar is visible', async ({ page }) => {
-    // j should highlight first item
-    await page.keyboard.press('j');
-    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(0);
-
-    // j again should move to second item
+    // Position starts at 0 (no URL match), first j moves to 1 and shows highlight
     await page.keyboard.press('j');
     expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
 
-    // k should move back
+    // j again moves to next item
+    await page.keyboard.press('j');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(2);
+
+    // k moves back
     await page.keyboard.press('k');
-    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(0);
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
   });
 
   test('j does nothing when sidebar is hidden', async ({ page }) => {
     await page.evaluate(() => window.hideSidebar('transform'));
     await page.waitForTimeout(350); // Wait for CSS transition
-    await page.keyboard.press('Escape');
 
+    // No highlight yet (haven't pressed j while sidebar visible)
     const before = await page.evaluate(() => window.getHighlightedIndex());
     await page.keyboard.press('j');
     await page.keyboard.press('j');
@@ -144,10 +136,10 @@ test.describe('whenHidden: ignore', () => {
   });
 
   test('k does nothing when sidebar is hidden', async ({ page }) => {
-    // First navigate to an item while visible
+    // First navigate to an item while visible (position 0 → 1 → 2)
     await page.keyboard.press('j');
     await page.keyboard.press('j');
-    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(2);
 
     // Hide sidebar
     await page.evaluate(() => window.hideSidebar('transform'));
@@ -192,11 +184,11 @@ test.describe('whenHidden: ignore', () => {
   });
 
   test('navigation resumes when sidebar becomes visible again', async ({ page }) => {
-    // Hide sidebar
+    // Hide sidebar before any navigation
     await page.evaluate(() => window.hideSidebar('transform'));
     await page.waitForTimeout(350); // Wait for CSS transition
 
-    // j should do nothing
+    // j should do nothing (sidebar hidden, no highlight shown)
     await page.keyboard.press('j');
     expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(-1);
 
@@ -204,9 +196,9 @@ test.describe('whenHidden: ignore', () => {
     await page.evaluate(() => window.showSidebar());
     await page.waitForTimeout(350); // Wait for CSS transition
 
-    // Now j should work
+    // Now j should work (position 0 → 1, highlight visible)
     await page.keyboard.press('j');
-    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(0);
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
   });
 });
 
@@ -216,11 +208,13 @@ test.describe('whenHidden: show-sidebar', () => {
   });
 
   test('j/k work normally when sidebar is visible', async ({ page }) => {
-    await page.keyboard.press('j');
-    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(0);
-
+    // Position 0 → 1, highlight at 1
     await page.keyboard.press('j');
     expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
+
+    // Position 1 → 2, highlight at 2
+    await page.keyboard.press('j');
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(2);
   });
 
   test('j emits toggle-sidebar event when sidebar is hidden', async ({ page }) => {
@@ -271,12 +265,12 @@ test.describe('whenHidden: show-sidebar', () => {
       }, { once: true });
     });
 
-    // Press j - should trigger toggle, sidebar opens, then navigate
+    // Press j - should trigger toggle, sidebar opens, then navigate (0 → 1)
     await page.keyboard.press('j');
     await page.waitForTimeout(100); // Wait for the delayed navigation
 
-    // After toggle + delay, should have navigated
-    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(0);
+    // After toggle + delay, should have navigated to position 1
+    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(1);
   });
 });
 
@@ -317,21 +311,6 @@ test.describe('Other bindings when sidebar hidden', () => {
     expect(afterCount).toBe(beforeCount + 1);
   });
 
-  test('Escape clears highlight regardless of sidebar visibility', async ({ page }) => {
-    await page.goto('/packages/teleport/tests/e2e/sidebar-visibility-fixture.html?whenHidden=ignore');
-
-    // Highlight an item
-    await page.keyboard.press('j');
-    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(0);
-
-    // Hide sidebar
-    await page.evaluate(() => window.hideSidebar('transform'));
-    await page.waitForTimeout(350); // Wait for CSS transition
-
-    // Escape should still clear
-    await page.keyboard.press('Escape');
-    expect(await page.evaluate(() => window.getHighlightedIndex())).toBe(-1);
-  });
 });
 
 test.describe('No sidebarSelector (backwards compatibility)', () => {
@@ -339,10 +318,12 @@ test.describe('No sidebarSelector (backwards compatibility)', () => {
     // Use the basic fixture which doesn't have sidebarSelector
     await page.goto('/packages/teleport/tests/fixtures/index.html');
 
-    await page.keyboard.press('j');
-    await expect(page.locator('.nav-item').first()).toHaveClass(/teleport-highlight/);
-
+    // Position 0 → 1, highlight at 1
     await page.keyboard.press('j');
     await expect(page.locator('.nav-item').nth(1)).toHaveClass(/teleport-highlight/);
+
+    // Position 1 → 2, highlight at 2
+    await page.keyboard.press('j');
+    await expect(page.locator('.nav-item').nth(2)).toHaveClass(/teleport-highlight/);
   });
 });

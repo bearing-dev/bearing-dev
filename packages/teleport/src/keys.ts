@@ -25,7 +25,6 @@ export const DEFAULT_BINDINGS: Required<KeyBindings> = {
   select: ['Enter'],
   toggleSidebar: ['t'],
   openFinder: ['/'],
-  escape: ['Escape'],
 };
 
 /**
@@ -216,7 +215,6 @@ export function createKeyboardHandler(
     onSelect,
     onToggleSidebar,
     onOpenFinder,
-    onEscape,
     ignoreWhenTyping = true,
   } = config;
 
@@ -285,12 +283,6 @@ export function createKeyboardHandler(
     if (onOpenFinder && matchesAnyKey(event, mergedBindings.openFinder)) {
       event.preventDefault();
       onOpenFinder();
-      return true;
-    }
-
-    if (onEscape && matchesAnyKey(event, mergedBindings.escape)) {
-      event.preventDefault();
-      onEscape();
       return true;
     }
 

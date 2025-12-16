@@ -167,7 +167,6 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
     navigator = createNavigator({
       items,
       wrap,
-      initialIndex: -1, // Start with no selection
       onChange: (_prev: string | null, _next: string | null, index: number) => {
         updateHighlight(index);
       },
@@ -175,19 +174,20 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
   }
 
   /**
-   * Update DOM to reflect current highlight
+   * Update DOM to reflect current position
    */
   function updateHighlight(index: number): void {
-    // Clear all highlights
+    // Clear class from all items
     elements.forEach((el) => el.classList.remove(highlightClass));
 
-    // Add highlight to current
+    // Add class to current item
     if (index >= 0 && index < elements.length) {
       const el = elements[index];
       el.classList.add(highlightClass);
       el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
+
 
   /**
    * Sync highlight with current URL (for page navigation)
@@ -214,12 +214,16 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
   const keyHandler = createKeyboardHandler({
     bindings: mergedBindings,
     ignoreWhenTyping,
-    onDown: () => handleNavigationAction(() => navigator?.next()),
-    onUp: () => handleNavigationAction(() => navigator?.prev()),
+    onDown: () => handleNavigationAction(() => {
+      navigator?.next();
+    }),
+    onUp: () => handleNavigationAction(() => {
+      navigator?.prev();
+    }),
     onScrollDown: () => scrollElement(window, getViewportHeight() / 2, 'down'),
     onScrollUp: () => scrollElement(window, getViewportHeight() / 2, 'up'),
     onSelect: () => handleNavigationAction(() => {
-      if (!navigator || navigator.currentIndex < 0) return;
+      if (!navigator) return;
       const el = elements[navigator.currentIndex];
       const slug = slugs[navigator.currentIndex];
       if (onSelect) {
@@ -254,13 +258,6 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
           const nextHref = slugs[pageIndex + 1];
           if (nextHref) window.location.href = nextHref;
         }
-      }
-    },
-    onEscape: () => {
-      elements.forEach((el) => el.classList.remove(highlightClass));
-      if (navigator) {
-        // Reset to no selection
-        navigator.goTo(-1);
       }
     },
     onToggleSidebar: onToggleSidebar

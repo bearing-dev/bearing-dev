@@ -25,8 +25,6 @@ export interface KeyBindings {
   toggleSidebar?: string[];
   /** Open fuzzy finder (default: ['/']) */
   openFinder?: string[];
-  /** Close/escape (default: ['Escape']) */
-  escape?: string[];
 }
 
 /**
@@ -54,7 +52,6 @@ export interface KeyboardHandlerConfig {
   onSelect?: () => void;
   onToggleSidebar?: () => void;
   onOpenFinder?: () => void;
-  onEscape?: () => void;
   /** Ignore keystrokes when typing in input/textarea (default: true) */
   ignoreWhenTyping?: boolean;
 }
@@ -87,7 +84,6 @@ export interface TeleportConfig {
   onSelect?: () => void;
   onToggleSidebar?: () => void;
   onOpenFinder?: () => void;
-  onEscape?: () => void;
   /** Ignore keystrokes when typing in input/textarea (default: true) */
   ignoreWhenTyping?: boolean;
 }

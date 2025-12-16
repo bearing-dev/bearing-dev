@@ -42,7 +42,6 @@ export function initTeleport(config: TeleportConfig): Teleport {
     onSelect,
     onToggleSidebar,
     onOpenFinder,
-    onEscape,
     ignoreWhenTyping = true,
   } = config;
 
@@ -58,7 +57,6 @@ export function initTeleport(config: TeleportConfig): Teleport {
     onSelect,
     onToggleSidebar,
     onOpenFinder,
-    onEscape,
     ignoreWhenTyping,
   });
 
