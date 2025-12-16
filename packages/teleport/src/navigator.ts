@@ -33,7 +33,7 @@ export interface CreateTeleportConfig {
   bindings?: KeyBindings;
   /** Ignore keystrokes when typing (default: true) */
   ignoreWhenTyping?: boolean;
-  /** What to do when j/k/Enter pressed while sidebar hidden (default: 'ignore') */
+  /** What to do when j/k/arrows pressed while sidebar hidden (default: 'ignore' scrolls content) */
   whenHidden?: WhenHiddenBehavior;
   /** Callback when item is selected (Enter pressed) */
   onSelect?: (element: HTMLElement, slug: string) => void;
@@ -141,7 +141,7 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
   /**
    * Handle navigation action with sidebar visibility awareness
    */
-  function handleNavigationAction(action: () => void): void {
+  function handleNavigationAction(action: () => void, direction?: 'up' | 'down'): void {
     if (isSidebarVisible()) {
       action();
     } else if (whenHidden === 'show-sidebar') {
@@ -149,8 +149,10 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
       document.dispatchEvent(new CustomEvent('teleport:toggle-sidebar'));
       // Small delay to let sidebar animate open
       setTimeout(action, 50);
+    } else if (direction) {
+      // 'ignore' behavior: scroll content instead (smaller than Ctrl+D/U)
+      scrollElement(window, getViewportHeight() / 4, direction);
     }
-    // 'ignore' behavior: do nothing
   }
 
   /**
@@ -216,10 +218,10 @@ export function createTeleport(config: CreateTeleportConfig): TeleportInstance {
     ignoreWhenTyping,
     onDown: () => handleNavigationAction(() => {
       navigator?.next();
-    }),
+    }, 'down'),
     onUp: () => handleNavigationAction(() => {
       navigator?.prev();
-    }),
+    }, 'up'),
     onScrollDown: () => scrollElement(window, getViewportHeight() / 2, 'down'),
     onScrollUp: () => scrollElement(window, getViewportHeight() / 2, 'up'),
     onSelect: () => handleNavigationAction(() => {
