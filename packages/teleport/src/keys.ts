@@ -28,21 +28,126 @@ export const DEFAULT_BINDINGS: Required<KeyBindings> = {
 };
 
 /**
+ * Valid modifier names (case-insensitive)
+ */
+const VALID_MODIFIERS = new Set(['ctrl', 'alt', 'shift', 'meta', 'cmd']);
+
+/**
+ * Valid multi-character key names that are not modifiers
+ */
+const VALID_SPECIAL_KEYS = new Set([
+  'arrowdown',
+  'arrowup',
+  'arrowleft',
+  'arrowright',
+  'enter',
+  'escape',
+  'tab',
+  'backspace',
+  'delete',
+  'home',
+  'end',
+  'pageup',
+  'pagedown',
+  'space',
+  'insert',
+  'capslock',
+  'numlock',
+  'scrolllock',
+  'pause',
+  'printscreen',
+  'contextmenu',
+  // Function keys F1-F24
+  'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12',
+  'f13', 'f14', 'f15', 'f16', 'f17', 'f18', 'f19', 'f20', 'f21', 'f22', 'f23', 'f24',
+]);
+
+/**
  * Parse a key pattern string into components.
  *
  * Supports modifiers: Ctrl, Alt, Shift, Meta (Cmd on Mac)
  * Examples: 'j', 'Ctrl+d', 'Shift+Tab', 'Meta+k'
+ *
+ * @throws Error if the pattern is invalid
  */
 export function parseKey(pattern: string): ParsedKey {
+  // Check for empty or whitespace-only
+  if (!pattern || pattern.trim() === '') {
+    throw new Error('Invalid key binding: empty string');
+  }
+
+  // Check for whitespace
+  if (/\s/.test(pattern)) {
+    throw new Error(`Invalid key binding "${pattern}": contains whitespace`);
+  }
+
+  // Check for plus-only
+  if (pattern === '+') {
+    throw new Error(`Invalid key binding "+": plus sign only`);
+  }
+
+  // Check for leading plus
+  if (pattern.startsWith('+')) {
+    throw new Error(`Invalid key binding "${pattern}": leading plus sign`);
+  }
+
+  // Check for consecutive plus signs
+  if (/\+\+/.test(pattern)) {
+    throw new Error(`Invalid key binding "${pattern}": consecutive plus signs`);
+  }
+
+  // Check for trailing plus (empty key after modifier)
+  if (pattern.endsWith('+')) {
+    throw new Error(`Invalid key binding "${pattern}": empty key after modifier`);
+  }
+
   const parts = pattern.split('+');
   const key = parts.pop()!.toLowerCase();
+  const modifierParts = parts;
+
+  // Track seen modifiers to detect duplicates
+  const seenModifiers = new Set<string>();
+
+  // Validate each modifier
+  for (const part of modifierParts) {
+    const lowerPart = part.toLowerCase();
+
+    if (!VALID_MODIFIERS.has(lowerPart)) {
+      throw new Error(
+        `Invalid key binding "${pattern}": unrecognized modifier "${part}"`
+      );
+    }
+
+    // Normalize cmd to meta for duplicate detection
+    const normalizedMod = lowerPart === 'cmd' ? 'meta' : lowerPart;
+    if (seenModifiers.has(normalizedMod)) {
+      throw new Error(
+        `Invalid key binding "${pattern}": duplicate modifier "${part}"`
+      );
+    }
+    seenModifiers.add(normalizedMod);
+  }
+
+  // If the key is itself a modifier, it's a modifier-only binding (missing key)
+  if (VALID_MODIFIERS.has(key)) {
+    throw new Error(
+      `Invalid key binding "${pattern}": modifier-only binding, missing key`
+    );
+  }
+
+  // Check for suspicious multi-character keys (likely missing +)
+  if (key.length > 1 && !VALID_SPECIAL_KEYS.has(key)) {
+    throw new Error(
+      `Invalid key binding "${pattern}": key "${key}" looks like a missing plus sign`
+    );
+  }
 
   return {
     key,
-    ctrl: parts.some((p) => p.toLowerCase() === 'ctrl'),
-    alt: parts.some((p) => p.toLowerCase() === 'alt'),
-    shift: parts.some((p) => p.toLowerCase() === 'shift'),
-    meta: parts.some((p) => p.toLowerCase() === 'meta' || p.toLowerCase() === 'cmd'),
+    ctrl: seenModifiers.has('ctrl'),
+    alt: seenModifiers.has('alt'),
+    shift: seenModifiers.has('shift'),
+    meta: seenModifiers.has('meta'),
   };
 }
 
