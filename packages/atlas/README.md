@@ -66,6 +66,16 @@ The `[[wiki-link]]` syntax is a widely-adopted convention. Many editors can foll
 
 Your content stays navigable in your editor without any build step.
 
+## Prior Art
+
+The `[[wiki-link]]` syntax has a long history:
+
+- **MediaWiki** (2002) — Wikipedia's engine, origin of `[[page]]` syntax
+- **Org mode** (2003) — Emacs system with `[[link][desc]]`, bidirectional links, and export
+- **Roam/Obsidian** (2019-20) — Popularized wiki-links in the "tools for thought" space
+
+This plugin brings the same convention to static site generators.
+
 ## How It Works
 
 1. You write `[[some-page]]` in markdown
